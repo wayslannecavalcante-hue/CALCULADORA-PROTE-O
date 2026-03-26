@@ -1,7 +1,19 @@
 import { GoogleGenAI } from "@google/genai";
 import { FunnelData, CalculatedMetrics } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+let ai: GoogleGenAI | null = null;
+
+const getAiClient = () => {
+  if (!ai) {
+    const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      console.error("API Key is missing. Please set GEMINI_API_KEY in your environment variables.");
+    }
+    // Initialize even if missing to let the API call fail gracefully later, or handle it here
+    ai = new GoogleGenAI({ apiKey: apiKey || 'missing-key' });
+  }
+  return ai;
+};
 
 export const generateActionPlan = async (
   data: FunnelData,
@@ -46,7 +58,8 @@ export const generateActionPlan = async (
   `;
 
   try {
-    const response = await ai.models.generateContent({
+    const client = getAiClient();
+    const response = await client.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
